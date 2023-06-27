@@ -10,6 +10,7 @@ public class CardScript : MonoBehaviour
     public bool teleportBack { get; private set; }
     public bool isOnPile;
     public bool isFromPacket;
+    public bool isBackCard;
 
     public AudioManagerScript audioManager;
 
@@ -21,10 +22,10 @@ public class CardScript : MonoBehaviour
     public int rank;
     private int suit;
 
-    private Stack<GameObject> cardStack;
+    //private Stack<GameObject> cardStack;
     private GameObject pile;
     private DrawScript drawScript;
-
+    private GameManager gameManager;
     private Vector3 touchPosition;
     private Vector3 offset;
     private Vector3 originalPosition;
@@ -56,9 +57,10 @@ public class CardScript : MonoBehaviour
     {
         originalPosition = transform.position;
         audioManager = GameObject.Find("Audio Manager").GetComponent<AudioManagerScript>();
-        cardStack = new Stack<GameObject>();
-        cardStack.Push(gameObject);
         drawScript = GameObject.Find("Packet").GetComponent<DrawScript>();
+        gameManager = GameObject.Find("Game Manager").GetComponent<GameManager>();
+        //cardStack = new Stack<GameObject>();
+        //cardStack.Push(gameObject);
     }
 
     public int GetRank() => rank;
@@ -82,17 +84,18 @@ public class CardScript : MonoBehaviour
     }
     private void OnMouseDown()
     {
-        if (!isPlaced)
+        if (!isPlaced && !isBackCard)
         {
             touchPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             offset = transform.position - touchPosition;
 
-            originalPosition = transform.position;
+            //originalPosition = transform.position;
             transform.position = new Vector3(transform.position.x, transform.position.y, (float)rank / 100);
 
             if (isOnPile)
             {
-                cardStack = pile.GetComponent<PileScript>().RemoveCards(rank);
+                gameManager.TransferCardsToCardStack(gameObject, pile.GetComponent<PileScript>());
+                //cardStack = pile.GetComponent<PileScript>().RemoveCards(rank);
             }
             audioManager.PlayCardPickup();
         }
@@ -100,157 +103,166 @@ public class CardScript : MonoBehaviour
 
     private void OnMouseDrag()
     {
-        if (!isPlaced)
+        if (!isPlaced && !isBackCard)
         {
             touchPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             transform.position = new Vector3(touchPosition.x + offset.x, touchPosition.y + offset.y, transform.position.z);
 
             if (isOnPile)
             {
-                int tempY = 0;
-                GameObject obj;
-                Stack<GameObject> tempStack = new Stack<GameObject>(cardStack);
+                //int tempY = 0;
+                //GameObject obj;
+                //Stack<GameObject> tempStack = new Stack<GameObject>(cardStack);
 
-                while (tempStack.Count > 0)
-                {
-                    obj = tempStack.Pop();
-                    obj.transform.position = new Vector3(transform.position.x, transform.position.y - ((float)tempY) / 5, obj.transform.position.z);
-                    tempY++;
-                }
+                //while (tempStack.Count > 0)
+                //{
+                //    obj = tempStack.Pop();
+                //    obj.transform.position = new Vector3(transform.position.x, transform.position.y - ((float)tempY) / 5, obj.transform.position.z);
+                //    tempY++;
+                //}
+                gameManager.MoveCardStack();
             }
         }
     }
-    private void Place(Stack<GameObject> stack)
-    {
-        int tempY = 0;
-        GameObject obj;
-        Stack<GameObject> tempStack = new Stack<GameObject>(stack);
+    //private void Place(Stack<GameObject> stack)
+    //{
+    //    int tempY = 0;
+    //    GameObject obj;
+    //    Stack<GameObject> tempStack = new Stack<GameObject>(stack);
 
-        while (tempStack.Count > 0)
-        {
-            obj = tempStack.Pop();
-            obj.transform.position = new Vector3(transform.position.x, transform.position.y - ((float)tempY) / 5, obj.transform.position.z);
-            tempY++;
-        }
-    }
+    //    while (tempStack.Count > 0)
+    //    {
+    //        obj = tempStack.Pop();
+    //        obj.transform.position = new Vector3(transform.position.x, transform.position.y - ((float)tempY) / 5, obj.transform.position.z);
+    //        tempY++;
+    //    }
+    //}
 
     private void OnMouseUp()
     {
-
-        touchPosition = Vector3.zero;
-        offset = Vector3.zero;
-
-        Vector3 size = gameObject.GetComponent<Renderer>().bounds.size;
-        Collider2D[] overlaps = Physics2D.OverlapBoxAll(gameObject.transform.position, size, 0f);
-
-        
-        if (overlaps.Length > 1) // Ignore self-collision
+        if (!isBackCard)
         {
-            foreach (Collider2D overlap in overlaps)
+            touchPosition = Vector3.zero;
+            offset = Vector3.zero;
+
+            Vector3 size = gameObject.GetComponent<BoxCollider2D>().bounds.size;
+            Collider2D[] overlaps = Physics2D.OverlapBoxAll(gameObject.transform.position, size, 0f);
+
+
+            if (overlaps.Length > 1) // Ignore self-collision
             {
-                if (overlap.gameObject == gameObject)
+                foreach (Collider2D overlap in overlaps)
                 {
-                    continue;
-                }
-
-                RowsScript rowScript = overlap.gameObject.GetComponent<RowsScript>();
-                PileScript pileScript = overlap.gameObject.GetComponent<PileScript>();
-                CardScript cardScript = overlap.gameObject.GetComponent<CardScript>();
-
-                if (rowScript && rowScript.CanPlace(rank, suit))
-                {
-                    isPlaced = true;
-                    isOnPile = false;
-                    teleportBack = false;
-                    transform.position = overlap.transform.position;
-
-                    if(isFromPacket)
+                    if (overlap.gameObject == gameObject)
                     {
-                        drawScript.drawnCardsStack.Pop();
+                        continue;
                     }
-                    if (!isFromPacket && GetPileScriptForAttachedPile())
+
+                    RowsScript rowScript = overlap.gameObject.GetComponent<RowsScript>();
+                    PileScript pileScript = overlap.gameObject.GetComponent<PileScript>();
+                    CardScript cardScript = overlap.gameObject.GetComponent<CardScript>();
+
+                    if (rowScript && rowScript.CanPlace(rank, suit))
                     {
-                        GetPileScriptForAttachedPile().CheckForCards();
-                    }
-                    
-                    isFromPacket = false;
-                    SetPosition();
-                    Destroy(this);
-                    break;
-                }
-                else if (pileScript && pileScript.rankValue == 13 && rank == 13 && pileScript.backCardStack.Count == 0)
-                {
-                    pileScript.AddCards(rank, cardStack);
-                    if(isFromPacket)
-                    {
+                        isPlaced = true;
+                        isOnPile = false;
+                        teleportBack = false;
+
+                        if (isFromPacket)
+                        {
+                            drawScript.drawnCardsStack.Pop();
+                        }
+                        if (!isFromPacket && GetPileScriptForAttachedPile())
+                        {
+                            GetPileScriptForAttachedPile().CheckForCards();
+                        }
+
+                        isFromPacket = false;
                         SetPosition();
-                        drawScript.drawnCardsStack.Pop();
+                        Destroy(this);
+                        break;
                     }
-                    isOnPile = true;
-                    teleportBack = false;
-                    transform.position = overlap.transform.position;
-              
-                    if (!isFromPacket && GetPileScriptForAttachedPile())
+                    else if (pileScript && pileScript.rankValue == 13 && rank == 13 && pileScript.pileStack.Count == 0)
                     {
-                        GetPileScriptForAttachedPile().CheckForCards();
-                    }
-                    
-                    isFromPacket = false;
+                        pileScript.AddCards(gameManager.cardStack);
+                        if (isFromPacket)
+                        {
+                            SetPosition();
+                            drawScript.drawnCardsStack.Pop();
+                        }
+                        isOnPile = true;
+                        teleportBack = false;
+                        //transform.position = overlap.transform.position;
 
-                    SetAttachedPile(overlap.gameObject);
-                    Place(cardStack);
-                    break;
-                }
-                else if (cardScript && cardScript != gameObject.GetComponent<CardScript>() && cardScript.isOnPile && cardScript.rank - 1 == rank)
-                {
-                    Debug.Log("card peste card");
-                    cardScript.GetAttachedPile().GetComponent<PileScript>().AddCards(rank, cardStack);
-                    if(isFromPacket)
-                    {
-                        SetPosition();
-                        drawScript.drawnCardsStack.Pop();
+                        if (!isFromPacket && GetPileScriptForAttachedPile())
+                        {
+                            GetPileScriptForAttachedPile().CheckForCards();
+                        }
+
+                        isFromPacket = false;
+
+                        SetAttachedPile(overlap.gameObject);
+                        gameManager.TransferCardsToPileStack(pileScript);
+                        break;
                     }
-                    isFromPacket = false;
-                    isOnPile = true;
-                    teleportBack = false;
-                    transform.position = new Vector3(overlap.transform.position.x, overlap.transform.position.y - 0.2f, (float)rank / 100);
-                    this.Place(cardStack);
-                    if (this.pile != null && this.pile.GetComponent<PileScript>())
+                    else if (cardScript && cardScript != gameObject.GetComponent<CardScript>() && cardScript.isOnPile && !cardScript.isBackCard &&
+                        cardScript.rank - 1 == rank && cardScript.GetPileScriptForAttachedPile().pileStack.Peek().Equals(cardScript.gameObject))
                     {
-                        this.pile.GetComponent<PileScript>().CheckForCards();
+                        Debug.Log("card peste card");
+                        //transform.position = new Vector3(overlap.transform.position.x, overlap.transform.position.y - 0.2f, (float)rank / 100);
+                        gameManager.TransferCardsToPileStack(cardScript.GetPileScriptForAttachedPile());
+                        //cardScript.GetPileScriptForAttachedPile().AddCards(rank, cardStack);
+                        if (isFromPacket)
+                        {
+                            SetPosition();
+                            drawScript.drawnCardsStack.Pop();
+                        }
+                        isFromPacket = false;
+                        isOnPile = true;
+                        teleportBack = false;
+
+                        if (this.pile != null && this.pile.GetComponent<PileScript>())
+                        {
+                            GetPileScriptForAttachedPile().CheckForCards();
+                        }
+                        this.pile = cardScript.GetAttachedPile();
+                        break;
                     }
-                    this.pile = cardScript.GetAttachedPile();
-                    break;
-                }
-                else
-                {
-                    teleportBack = true;
+                    else
+                    {
+                        if(cardScript && cardScript != gameObject.GetComponent<CardScript>())
+                        {
+                            //Debug.Log("cardscript rank: " + cardScript.rank + "card rank: " + rank);
+                        }
+                        teleportBack = true;
+                    }
                 }
             }
-        }
-        else
-        {
-            teleportBack = true;
-        }
-
-        if (teleportBack)
-        {
-            transform.position = originalPosition;
-            //Debug.Log("before" + this.pile.GetComponent<PileScript>().pileStack.Count);
-            if(!isFromPacket)
+            else
             {
-                GetPileScriptForAttachedPile().AddCards(rank, cardStack);
-                //Debug.Log("after" + this.pile.GetComponent<PileScript>().pileStack.Count);
-                Place(cardStack);
+                teleportBack = true;
             }
-            teleportBack = false;
-            audioManager.PlayError();
-        }
-        else
-        {
-            audioManager.PlayCardPutDown();
+
+            if (teleportBack)
+            {
+                //transform.position = originalPosition;
+                //Debug.Log("before" + this.pile.GetComponent<PileScript>().pileStack.Count);
+                if (!isFromPacket)
+                {
+                    gameManager.TransferCardsToPileStack(GetPileScriptForAttachedPile());
+                    //GetPileScriptForAttachedPile().AddCards(rank, cardStack);
+                    //Debug.Log("after" + this.pile.GetComponent<PileScript>().pileStack.Count);
+                    //Place(cardStack);
+                }
+                teleportBack = false;
+                audioManager.PlayError();
+            }
+            else
+            {
+                audioManager.PlayCardPutDown();
+            }
+
         }
 
-                        
     }
 }

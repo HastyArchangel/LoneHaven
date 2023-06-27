@@ -10,12 +10,14 @@ public class GameManager : MonoBehaviour
     public List<GameObject> cardList;
     public List<GameObject> pileCardList;
     private float zPosition;
+    public Stack<GameObject> cardStack;
 
     // Start is called before the first frame update
     private void Awake()
     {
         cardList = new List<GameObject>(cards);
         pileCardList = new List<GameObject>();
+        cardStack = new Stack<GameObject>();
     }
     void Start()
     {
@@ -35,7 +37,51 @@ public class GameManager : MonoBehaviour
             pileCardList.Add(obj);
         }
     }
+    public void TransferCardsToCardStack(GameObject card, PileScript pile)
+    {
+        Stack<GameObject> stack = pile.pileStack;
+        while (stack.Count > 0)
+        {
+            //Debug.Log("se presupune ca functia asta sa fucntioneze de count ori");
+            //Debug.Log(stack.Count);
+            GameObject obj = stack.Pop();
+            cardStack.Push(obj);
+            if (obj.Equals(card))
+            {
+                break;
+            }
+        }
+    }
+    public void TransferCardsToPileStack(PileScript pile)
+    {
+        Stack<GameObject> stack = pile.pileStack;
+        while (cardStack.Count > 0)
+        {
+            //Debug.Log("din nou se presupune ca functia asta sa fucntioneze");
+            //Debug.Log(cardStack.Count);
+            GameObject obj = cardStack.Pop();
+            float yPosition = pile.transform.position.y - (stack.Count / 5.0f);
+            float zPosition = - (1 + stack.Count / 100.0f);
+            obj.transform.position = new Vector3(pile.transform.position.x, yPosition, zPosition);
+            stack.Push(obj);
+        }
+    }
 
+    public void MoveCardStack()
+    {
+        Stack<GameObject> reverseStack = new(cardStack);
+        Stack<GameObject> stack = new (reverseStack);
+        float tempY = 1.0f;
+        float dragZ = -2.0f;
+        GameObject first = stack.Pop();
+        GameObject obj;
+        while (stack.Count > 0)
+        {
+            obj = stack.Pop();
+            obj.transform.position = new Vector3(first.transform.position.x, first.transform.position.y - (tempY / 5), dragZ - (tempY / 5));
+            tempY++;
+        }
+    }
     public void UpdateScore()
     {
         score++;
