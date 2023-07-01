@@ -27,7 +27,7 @@ public class DrawScript : MonoBehaviour
         drawStackCopy = new Stack<GameObject>();
         GenerateList();
         GenerateCards();
-        PlaceCards();
+        //PlaceCards();
     }
 
     // Update is called once per frame
@@ -53,18 +53,18 @@ public class DrawScript : MonoBehaviour
         }
     }
 
-    private void PlaceCards()
-    {
-        drawStackCopy = new(drawStack);
-        while (drawStackCopy.Count > 0)
-        {
-            GameObject card = Instantiate(backCard, backCardSpawnPosition, backCard.transform.rotation);
-            card.GetComponent<BackCardScript>().card = drawStackCopy.Pop();
-            card.GetComponent<BackCardScript>().isFromPacket = true;
-            drawnCardsStack.Push(card);
-            backCardSpawnPosition -= subtrVect;
-        }
-    }
+    //private void PlaceCards()
+    //{
+    //    drawStackCopy = new(drawStack);
+    //    while (drawStackCopy.Count > 0)
+    //    {
+    //        GameObject card = Instantiate(backCard, backCardSpawnPosition, backCard.transform.rotation);
+    //        //card.GetComponent<BackCardScript>().card = drawStackCopy.Pop();
+    //        //card.GetComponent<BackCardScript>().isFromPacket = true;
+    //        drawnCardsStack.Push(card);
+    //        backCardSpawnPosition -= subtrVect;
+    //    }
+    //}
 
     private void OnMouseDown()
     {

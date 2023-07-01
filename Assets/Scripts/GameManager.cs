@@ -12,7 +12,6 @@ public class GameManager : MonoBehaviour
     private float zPosition;
     public Stack<GameObject> cardStack;
 
-    // Start is called before the first frame update
     private void Awake()
     {
         cardList = new List<GameObject>(cards);
@@ -37,13 +36,22 @@ public class GameManager : MonoBehaviour
             pileCardList.Add(obj);
         }
     }
+
+    public void SetAttachedPileForCardStack(GameObject pile)
+    {
+        Stack<GameObject> stack = new(cardStack);
+        GameObject obj;
+        while (stack.Count > 0)
+        {
+            obj = stack.Pop();
+            obj.GetComponent<CardScript>().SetAttachedPile(pile);
+        }
+    }
     public void TransferCardsToCardStack(GameObject card, PileScript pile)
     {
         Stack<GameObject> stack = pile.pileStack;
         while (stack.Count > 0)
         {
-            //Debug.Log("se presupune ca functia asta sa fucntioneze de count ori");
-            //Debug.Log(stack.Count);
             GameObject obj = stack.Pop();
             cardStack.Push(obj);
             if (obj.Equals(card))
@@ -57,8 +65,6 @@ public class GameManager : MonoBehaviour
         Stack<GameObject> stack = pile.pileStack;
         while (cardStack.Count > 0)
         {
-            //Debug.Log("din nou se presupune ca functia asta sa fucntioneze");
-            //Debug.Log(cardStack.Count);
             GameObject obj = cardStack.Pop();
             float yPosition = pile.transform.position.y - (stack.Count / 5.0f);
             float zPosition = - (1 + stack.Count / 100.0f);
@@ -75,6 +81,7 @@ public class GameManager : MonoBehaviour
         float dragZ = -2.0f;
         GameObject first = stack.Pop();
         GameObject obj;
+        first.transform.position = new Vector3(first.transform.position.x, first.transform.position.y, dragZ);
         while (stack.Count > 0)
         {
             obj = stack.Pop();

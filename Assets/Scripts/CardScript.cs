@@ -4,10 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 public class CardScript : MonoBehaviour
 {
-    public float zOffset = -1f;
-
-    public bool isPlaced { get; private set; }
-    public bool teleportBack { get; private set; }
+    public bool IsPlaced { get; private set; }
+    public bool TeleportBack { get; private set; }
     public bool isOnPile;
     public bool isFromPacket;
     public bool isBackCard;
@@ -32,6 +30,24 @@ public class CardScript : MonoBehaviour
 
     private void Awake()
     {
+        ParseCardName();
+        rank = (int)RankValue;
+        suit = (int)SuitValue;
+        isOnPile = false;
+        IsPlaced = false;
+        TeleportBack = false;
+        isFromPacket = false;
+    }
+    private void Start()
+    {
+        originalPosition = transform.position;
+        audioManager = GameObject.Find("Audio Manager").GetComponent<AudioManagerScript>();
+        drawScript = GameObject.Find("Packet").GetComponent<DrawScript>();
+        gameManager = GameObject.Find("Game Manager").GetComponent<GameManager>();
+    }
+
+    private void ParseCardName()
+    {
         string[] parts = name.Split(DELIMITER);
         parts[1] = parts[1].Replace("(Clone)", "");
 
@@ -46,21 +62,6 @@ public class CardScript : MonoBehaviour
 
         RankValue = rank_Awake;
         SuitValue = suit_Awake;
-        rank = (int)RankValue;
-        suit = (int)SuitValue;
-        isOnPile = false;
-        isPlaced = false;
-        teleportBack = false;
-        isFromPacket = false;
-    }
-    private void Start()
-    {
-        originalPosition = transform.position;
-        audioManager = GameObject.Find("Audio Manager").GetComponent<AudioManagerScript>();
-        drawScript = GameObject.Find("Packet").GetComponent<DrawScript>();
-        gameManager = GameObject.Find("Game Manager").GetComponent<GameManager>();
-        //cardStack = new Stack<GameObject>();
-        //cardStack.Push(gameObject);
     }
 
     public int GetRank() => rank;
@@ -73,7 +74,7 @@ public class CardScript : MonoBehaviour
 
     public void SetPosition()
     {
-        if (!isPlaced)
+        if (!IsPlaced)
         {
             transform.position = new Vector3(transform.position.x, transform.position.y, (float)rank / 100);
         }
@@ -82,20 +83,19 @@ public class CardScript : MonoBehaviour
             transform.position = new Vector3(transform.position.x, transform.position.y, 0.5f - (float)rank / 100);
         }
     }
+
+   
     private void OnMouseDown()
     {
-        if (!isPlaced && !isBackCard)
+        if (!IsPlaced && !isBackCard)
         {
             touchPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             offset = transform.position - touchPosition;
-
-            //originalPosition = transform.position;
             transform.position = new Vector3(transform.position.x, transform.position.y, (float)rank / 100);
 
             if (isOnPile)
             {
                 gameManager.TransferCardsToCardStack(gameObject, pile.GetComponent<PileScript>());
-                //cardStack = pile.GetComponent<PileScript>().RemoveCards(rank);
             }
             audioManager.PlayCardPickup();
         }
@@ -103,40 +103,17 @@ public class CardScript : MonoBehaviour
 
     private void OnMouseDrag()
     {
-        if (!isPlaced && !isBackCard)
+        if (!IsPlaced && !isBackCard)
         {
             touchPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             transform.position = new Vector3(touchPosition.x + offset.x, touchPosition.y + offset.y, transform.position.z);
 
             if (isOnPile)
             {
-                //int tempY = 0;
-                //GameObject obj;
-                //Stack<GameObject> tempStack = new Stack<GameObject>(cardStack);
-
-                //while (tempStack.Count > 0)
-                //{
-                //    obj = tempStack.Pop();
-                //    obj.transform.position = new Vector3(transform.position.x, transform.position.y - ((float)tempY) / 5, obj.transform.position.z);
-                //    tempY++;
-                //}
                 gameManager.MoveCardStack();
             }
         }
     }
-    //private void Place(Stack<GameObject> stack)
-    //{
-    //    int tempY = 0;
-    //    GameObject obj;
-    //    Stack<GameObject> tempStack = new Stack<GameObject>(stack);
-
-    //    while (tempStack.Count > 0)
-    //    {
-    //        obj = tempStack.Pop();
-    //        obj.transform.position = new Vector3(transform.position.x, transform.position.y - ((float)tempY) / 5, obj.transform.position.z);
-    //        tempY++;
-    //    }
-    //}
 
     private void OnMouseUp()
     {
@@ -157,105 +134,106 @@ public class CardScript : MonoBehaviour
                     {
                         continue;
                     }
-
                     RowsScript rowScript = overlap.gameObject.GetComponent<RowsScript>();
                     PileScript pileScript = overlap.gameObject.GetComponent<PileScript>();
                     CardScript cardScript = overlap.gameObject.GetComponent<CardScript>();
 
-                    if (rowScript && rowScript.CanPlace(rank, suit))
+                    if (rowScript && rowScript.CanPlace(rank, suit) && gameManager.cardStack.Count == 1)
                     {
-                        isPlaced = true;
-                        isOnPile = false;
-                        teleportBack = false;
+                        //IsPlaced = true;
+                        //isOnPile = false;
+                        //TeleportBack = false;
 
-                        if (isFromPacket)
-                        {
-                            drawScript.drawnCardsStack.Pop();
-                        }
-                        if (!isFromPacket && GetPileScriptForAttachedPile())
-                        {
-                            GetPileScriptForAttachedPile().CheckForCards();
-                        }
+                        //if (isFromPacket)
+                        //{
+                        //    drawScript.drawnCardsStack.Pop();
+                        //}
+                        //if (!isFromPacket && GetPileScriptForAttachedPile())
+                        //{
+                        //    GetPileScriptForAttachedPile().CheckForCards();
+                        //}
 
-                        isFromPacket = false;
-                        SetPosition();
-                        Destroy(this);
+                        //isFromPacket = false;
+                        //transform.position = overlap.transform.position;
+                        //SetPosition();
+                        //gameManager.cardStack.Pop();
+                        //Destroy(this);
+                        HandleValidPlacement(rowScript, overlap);
                         break;
                     }
-                    else if (pileScript && pileScript.rankValue == 13 && rank == 13 && pileScript.pileStack.Count == 0)
+                    else if (pileScript && rank == 13 && pileScript.pileStack.Count == 0)
                     {
-                        pileScript.AddCards(gameManager.cardStack);
-                        if (isFromPacket)
-                        {
-                            SetPosition();
-                            drawScript.drawnCardsStack.Pop();
-                        }
-                        isOnPile = true;
-                        teleportBack = false;
-                        //transform.position = overlap.transform.position;
+                        //Debug.Log("gol");
+                        //if (this.pile != null && this.pile.GetComponent<PileScript>())
+                        //{
+                        //    GetPileScriptForAttachedPile().CheckForCards();
+                        //}
 
-                        if (!isFromPacket && GetPileScriptForAttachedPile())
-                        {
-                            GetPileScriptForAttachedPile().CheckForCards();
-                        }
+                        //gameManager.SetAttachedPileForCardStack(overlap.gameObject);
+                        //gameManager.TransferCardsToPileStack(pileScript);
+                        //if (isFromPacket)
+                        //{
+                        //    SetPosition();
+                        //    drawScript.drawnCardsStack.Pop();
+                        //}
+                        //isOnPile = true;
+                        //TeleportBack = false;
 
-                        isFromPacket = false;
+                        //if (!isFromPacket && GetPileScriptForAttachedPile())
+                        //{
+                        //    GetPileScriptForAttachedPile().CheckForCards();
+                        //}
 
-                        SetAttachedPile(overlap.gameObject);
-                        gameManager.TransferCardsToPileStack(pileScript);
+                        //isFromPacket = false;
+
+                        HandleKingPlacement(pileScript, overlap);
                         break;
                     }
                     else if (cardScript && cardScript != gameObject.GetComponent<CardScript>() && cardScript.isOnPile && !cardScript.isBackCard &&
                         cardScript.rank - 1 == rank && cardScript.GetPileScriptForAttachedPile().pileStack.Peek().Equals(cardScript.gameObject))
                     {
-                        Debug.Log("card peste card");
-                        //transform.position = new Vector3(overlap.transform.position.x, overlap.transform.position.y - 0.2f, (float)rank / 100);
-                        gameManager.TransferCardsToPileStack(cardScript.GetPileScriptForAttachedPile());
-                        //cardScript.GetPileScriptForAttachedPile().AddCards(rank, cardStack);
-                        if (isFromPacket)
-                        {
-                            SetPosition();
-                            drawScript.drawnCardsStack.Pop();
-                        }
-                        isFromPacket = false;
-                        isOnPile = true;
-                        teleportBack = false;
+                        //if (this.pile != null && this.pile.GetComponent<PileScript>())
+                        //{
+                        //    GetPileScriptForAttachedPile().CheckForCards();
+                        //}
+                        //gameManager.SetAttachedPileForCardStack(cardScript.GetAttachedPile());
+                        //gameManager.TransferCardsToPileStack(cardScript.GetPileScriptForAttachedPile());
 
-                        if (this.pile != null && this.pile.GetComponent<PileScript>())
-                        {
-                            GetPileScriptForAttachedPile().CheckForCards();
-                        }
-                        this.pile = cardScript.GetAttachedPile();
+                        //if (isFromPacket)
+                        //{
+                        //    SetPosition();
+                        //    drawScript.drawnCardsStack.Pop();
+                        //}
+                        //isFromPacket = false;
+                        //isOnPile = true;
+                        //TeleportBack = false;
+                        HandleSequentialPlacement(cardScript, overlap);
                         break;
                     }
                     else
                     {
-                        if(cardScript && cardScript != gameObject.GetComponent<CardScript>())
-                        {
-                            //Debug.Log("cardscript rank: " + cardScript.rank + "card rank: " + rank);
-                        }
-                        teleportBack = true;
+                        TeleportBack = true;
                     }
                 }
             }
             else
             {
-                teleportBack = true;
+                TeleportBack = true;
             }
 
-            if (teleportBack)
+            if (TeleportBack)
             {
-                //transform.position = originalPosition;
-                //Debug.Log("before" + this.pile.GetComponent<PileScript>().pileStack.Count);
-                if (!isFromPacket)
-                {
-                    gameManager.TransferCardsToPileStack(GetPileScriptForAttachedPile());
-                    //GetPileScriptForAttachedPile().AddCards(rank, cardStack);
-                    //Debug.Log("after" + this.pile.GetComponent<PileScript>().pileStack.Count);
-                    //Place(cardStack);
-                }
-                teleportBack = false;
-                audioManager.PlayError();
+                HandleTeleportBack();
+                //if (!isFromPacket)
+                //{
+                //    gameManager.TransferCardsToPileStack(GetPileScriptForAttachedPile());
+                //}
+                //else
+                //{
+                //    transform.position = originalPosition;
+                //}
+                //TeleportBack = false;
+                //audioManager.PlayError();
             }
             else
             {
@@ -265,4 +243,85 @@ public class CardScript : MonoBehaviour
         }
 
     }
+    private void HandleValidPlacement(RowsScript rowScript, Collider2D overlap)
+    {
+        IsPlaced = true;
+        isOnPile = false;
+        TeleportBack = false;
+
+        if (isFromPacket)
+        {
+            drawScript.drawnCardsStack.Pop();
+        }
+        if (!isFromPacket && GetPileScriptForAttachedPile())
+        {
+            GetPileScriptForAttachedPile().CheckForCards();
+        }
+
+        isFromPacket = false;
+        transform.position = overlap.transform.position;
+        SetPosition();
+        gameManager.cardStack.Pop();
+        Destroy(this);
+    }
+
+    private void HandleKingPlacement(PileScript pileScript, Collider2D overlap)
+    {
+        if (this.pile != null && this.pile.GetComponent<PileScript>())
+        {
+            GetPileScriptForAttachedPile().CheckForCards();
+        }
+
+        gameManager.SetAttachedPileForCardStack(overlap.gameObject);
+        gameManager.TransferCardsToPileStack(pileScript);
+        if (isFromPacket)
+        {
+            SetPosition();
+            drawScript.drawnCardsStack.Pop();
+        }
+        isOnPile = true;
+        TeleportBack = false;
+
+        if (!isFromPacket && GetPileScriptForAttachedPile())
+        {
+            GetPileScriptForAttachedPile().CheckForCards();
+        }
+
+        isFromPacket = false;
+    }
+
+    private void HandleSequentialPlacement(CardScript cardScript, Collider2D overlap)
+    {
+        if (this.pile != null && this.pile.GetComponent<PileScript>())
+        {
+            GetPileScriptForAttachedPile().CheckForCards();
+        }
+        gameManager.SetAttachedPileForCardStack(cardScript.GetAttachedPile());
+        gameManager.TransferCardsToPileStack(cardScript.GetPileScriptForAttachedPile());
+
+        if (isFromPacket)
+        {
+            SetPosition();
+            drawScript.drawnCardsStack.Pop();
+        }
+        isFromPacket = false;
+        isOnPile = true;
+        TeleportBack = false;
+    }
+
+    private void HandleTeleportBack()
+    {
+        if (!isFromPacket)
+        {
+            gameManager.TransferCardsToPileStack(GetPileScriptForAttachedPile());
+        }
+        else
+        {
+            transform.position = originalPosition;
+        }
+        TeleportBack = false;
+        audioManager.PlayError();
+    }
+
 }
+

@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class PileScript : MonoBehaviour
 {
-    public int rankValue;
+    //public int rankValue;
     public Stack<GameObject> pileStack;
     //private Stack<GameObject> helperStack;
     public PileEnum PileValue { get; private set; }
@@ -76,35 +76,11 @@ public class PileScript : MonoBehaviour
         playingCardScript.SetPosition();
         playingCardScript.SetAttachedPile(this.gameObject);
         pileStack.Push(card);
-        rankValue = playingCardScript.GetRank();
+        //rankValue = playingCardScript.GetRank();
         gameManager.cardList.RemoveAt(randomSpawner);
     }
     private void GenerateCards()
     {
-        //GameObject card;
-        //while (pileNr > 0)
-        //{
-        //    randomSpawner = (int)UnityEngine.Random.Range(0, gameManager.cardList.Count);
-        //    card = Instantiate(backCard, GetCardPosition(spawnVariable, zOffSet), backCard.transform.rotation);
-        //    card.GetComponent<BackCardScript>().card = gameManager.cardList[randomSpawner];
-        //    card.GetComponent<BackCardScript>().SetPile(this.gameObject);
-        //    gameManager.cardList.RemoveAt(randomSpawner);
-        //    helperStack.Push(card.GetComponent<BackCardScript>().card);
-        //    backCardStack.Push(card);
-        //    spawnVariable++;
-        //    zOffSet++;
-        //    pileNr--;
-        //}
-        //randomSpawner = (int)UnityEngine.Random.Range(0, gameManager.cardList.Count);
-        //card = Instantiate(gameManager.cardList[randomSpawner], GetCardPosition(spawnVariable, 0f),
-        //    gameManager.cardList[randomSpawner].transform.rotation);
-        //card.GetComponent<CardScript>().SetPosition();
-        //card.GetComponent<CardScript>().SetAttachedPile(this.gameObject);
-        //card.GetComponent<CardScript>().isOnPile = true;
-        //pileStack.Push(card);
-        //helperStack.Push(gameManager.cardList[randomSpawner]);
-        //rankValue = card.GetComponent<CardScript>().GetRank();
-        //gameManager.cardList.RemoveAt(randomSpawner);
         GenerateBackCards(pileNr);
         GenerateGeneralCard();
     }
@@ -119,7 +95,7 @@ public class PileScript : MonoBehaviour
 
         if (pileStack.Count == 0)
         {
-            rankValue = 13;
+            //rankValue = 13;
         }
         else if (pileStack.Peek().transform.GetChild(1) == true)
         {
@@ -128,26 +104,5 @@ public class PileScript : MonoBehaviour
             card.transform.GetChild(0).gameObject.SetActive(true);
             card.GetComponent<CardScript>().isBackCard = false;
         }
-    }
-
-    public void AddCards(Stack<GameObject> cardStack)
-    {
-        Stack<GameObject> tempStack = new(cardStack);
-        while (tempStack.Count > 0)
-        {
-            pileStack.Push(tempStack.Pop());
-            rankValue--;
-        }
-    }
-
-    public Stack<GameObject> RemoveCards(int val)
-    {
-        Stack<GameObject> newCardStack = new();
-        while (val > rankValue - 1)
-        {
-            newCardStack.Push(pileStack.Pop());
-            rankValue++;
-        }
-        return new(newCardStack);
     }
 }
